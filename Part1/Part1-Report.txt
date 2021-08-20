@@ -4,13 +4,14 @@ In my method for the connection, I have followed the Breadth First Search, as th
 and explores all unexplored nodes in the shortest path possible, following the same process until reaching the end vertex.
 Also, this search algorithm's time complexity complies with the maximum permitted: O(v+e).
 
-Because the work does not ask specifically for the shortest route from the start to end vertices but ask that all during-journey Charging station pitstops have electric charging points,
-the driver can have many possible diversions to take. However, for simplicity, I will take the shortest to arrive from the starting to end vertex, providing that all the intermedia vertices are charging points.
-Also BFS is less prone to crashing than Depth First Search, in that DFS' deep recursive calls can mean call stack has exceeded the stack size limit; all programmes will have a finite stack size.
+Because the work does not ask specifically for the shortest route from the start to end vertices but ask that all intermedia stations have electric charging points,
+the driver can have many possible diversions to take. However, for simplicity, I will take the shortest valid route to arrive from the starting to end vertex, providing that all the intermedia vertices are charging points.
+Also BFS is less prone to crashing than Depth First Search, in that DFS' deep recursive calls can mean call stack has exceeded the stack size limit (DFS searches for ALL possibilities to reach the destination before starting the journey),
+rendering the search unresponsive and glitchy, especially if the map has over 1000 vertices; all programmes will have a finite stack size.
 Each 'Visit' operation on each vertex (i.e. v) takes O(1) time, the same for the potential paths (i.e. e). In other words, e stands for the number of adjacent vertices of each vertex;
 at most twice, one from checking the current vertex to the chosen adjacent vertex and vice versa too, and v stands for the number of vertices for its visit status.
 
-I provided three instances based on the Map.txt where its content is of the following:
+I provided four instances based on the Map.txt where its content is of the following:
 
 7  9
 A  0
@@ -30,17 +31,20 @@ G  0
 3  6  2
 5  6  1
 
-Example 1: Shortest from C to G. First, I discount the fact C is a charging station, then I drive to D, which is a charging station, then go to G, whose charging point status is discounted.
+Example 1: C to G. First, I discount the fact C is a charging station, then I drive to D, which is a charging station, then go to G, whose charging point status is discounted.
 In this instance, the Time Complexity is O(16), 6 was counted from the first set At C, 10 at D. However, this assumes I drive to the smallest number of stations before arriving at the ending vertex, not determined on the length of the path.
 Since the only mid-journey pitstop is a charging point, the programme will return true.
 
-Example 2: Shortest from D to A. Discounting D and A, the shortest of 6 length leads to B, which is not a charging station, then go to A. In this case its time complexity is O(13), 10 of D and 4 of B minus 1 for already taken route.
+Example 2: D to A. Discounting D and A, the shortest of 6 length leads to B, which is not a charging station, then go to A. In this case its time complexity is O(13), 10 of D and 4 of B minus 1 for already taken route.
 But since this route has no charging point in between, the return data is false.
 
-Example 3: Shortest from A to F. Discounting A and F, the shortest length is 10 via B and D instead of C-D's 22 or E-D's 21. Time complexity in this instance is O(16), 4 at A, 3 at B, 9 at D. Although D is a charging station, B is not so, the method will return false.
+Example 3: A to F. Discounting A and F, the shortest length is 10 via B and D instead of C-D's 22 or E-D's 21. Time complexity in this instance is O(16), 4 at A, 3 at B, 9 at D. Although D is a charging station, B is not so, the method will return false.
 For A to F, but only for this route; longer diversions will have charging points at the pitstops, therefore these diversions will return true.
 
-Example 4: Suppose we use this text file instead:
+Example 4: F to G. The programme finds out F and G directly connects with a road, so that path is ignored and finds a divertional route, which is via D, which has a charging station. The Time complexity is at F, 4 (First), 3 (second), at D, 5 + 4
+(5 available paths, 4 unvisited), thereby giving the time complexity of O(16), and returns true.
+
+Example 5: Suppose we use this text file instead:
 
 4  3
 A  1

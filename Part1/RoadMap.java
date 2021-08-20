@@ -3,6 +3,8 @@
  *1935938
  * Optionally, if you have any comments regarding your submission, put them here.
  * For instance, specify here if your program does not generate the proper output or does not do it in the correct manner.
+ Comment: This assumes for task 2: If the starting and ending input vertices directly link, the output of the path show both vertices,
+ before adding a divertion path, indicating the first entrance of the end vertex has been presumed blocked.
  */
 
 import java.util.*;
@@ -66,13 +68,15 @@ class Vertex {
     private ArrayList<Edge> incidentRoads; // Incident edges
     private boolean chargingStation; // Availability of charging station
     private int index; // Index of this vertex in the vertex array of the map
-    private boolean visited;
+    private boolean visited; // If the current vertex has been visited.
 }
 
 class Edge implements Comparable<Edge> {
     public Edge(int roadLength, Vertex firstPlace, Vertex secondPlace) {
         length = roadLength;
         incidentPlaces = new Vertex[] { firstPlace, secondPlace };
+        firstPlace.addIncidentRoad(this);
+        secondPlace.addIncidentRoad(this);
     }
 
     public Vertex getFirstVertex() {
@@ -92,8 +96,8 @@ class Edge implements Comparable<Edge> {
 
     @Override
     public int compareTo(Edge u) {
-        //return (getLength() - u.getLength());
-        return (u.getLength() - getLength());
+        return (getLength() - u.getLength());
+        //return (u.getLength() - getLength());
     }
 }
 
@@ -104,7 +108,7 @@ public class RoadMap {
     public RoadMap() {
         places = new ArrayList<Vertex>();
         roads = new ArrayList<Edge>();
-        //stores the vertex while the graph is being traversed
+        //stores the vertex while the tree is being traversed
         paths = new LinkedList<Vertex>();
     }
 
@@ -188,11 +192,11 @@ public class RoadMap {
                 // Read the vertex name and its charing station flag
                 String placeName = sc.next();
                 int chargingStationFlag = sc.nextInt();
-                boolean hasChargingStataion = (chargingStationFlag == 1);
+                boolean hasChargingStation = (chargingStationFlag == 1);
 
                 // Add your code here to create a new vertex using the information above and add
                 // it to places
-                places.add(new Vertex(placeName, hasChargingStataion, i));
+                places.add(new Vertex(placeName, hasChargingStation, i));
             }
 
             for (int j = 0; j < numEdges; ++j) {
@@ -235,50 +239,54 @@ public class RoadMap {
     }
 
     //Traverse through the vertex (Breath First Serach)
-    public boolean vertexTraversalBFS(Vertex initialVertex, Vertex destinVertex) {
+    public boolean vertexTraversalBFS(Vertex commenceVertex, Vertex destinVertex) {
 
-        // Just to handle receiving an uninitialized vertex, otherwise an
-        // exception will be thrown when we try to add it to queue
-        if (initialVertex == null) {
-            System.out.print("Start vertex not found");
+        // Just to handle receiving an uninitialised vertex, otherwise an
+        // exception will be thrown when trying to add it to queue
+        if (commenceVertex == null) {
+            System.out.print("start vertex not found");
             return false;
         }
         if (destinVertex == null) {
-            System.out.print("Destination vertex not found");
+            System.out.print("end vertex not found");
             return false;
         }
 
-        // Creating the queue, and adding the first vertex (step 1)
+        // Creating the queue, and adding the first node
         LinkedList<Vertex> queue = new LinkedList<>();
-        queue.add(initialVertex);
+        queue.add(commenceVertex);
+        // Initialise a boolean to check if the start and end vertices directly link upon input.
+        boolean notStartDirectLinkEnd = false;
 
         while (!queue.isEmpty()) {
             Vertex currentFirst = queue.removeFirst();
 
-            // In some cases, you must add a particular vertex more than once before
-            // actually visiting that vertex, making sure to check and skip that vertex if it have
-            // been encountered before
+            // In some cases the method might have added a particular vertex more than once before
+            // actually visiting that vertex, so this checks and skips that node if that vertex have
+            // encountered it before
             if (currentFirst.isVisited())
                 continue;
 
-            // Mark the vertex as visited
+            // Mark the node as visited
             currentFirst.visit();
             paths.add(currentFirst);
 
             LinkedList<Vertex> allNeighbours = getAdjacentVertex(currentFirst);
             System.out.println(currentFirst.getName() + " has " + allNeighbours.size() + " adjacent vertex");
 
-            // check whether the list of neighbours is null before proceeding, otherwise
+            // check whether the list of Neighbours is null before proceeding, otherwise
             // the for-each loop will throw an exception
             if (allNeighbours.size() == 0) {
                 paths.removeLast();
-                System.out.println(currentFirst.getName() + " has no adjacent vertices, path unusable");
+                System.out.println(currentFirst.getName() + " does not have any more adjacent vertex, path not usable");
+                notStartDirectLinkEnd = true;
                 continue;
             }
-
-            if (!currentFirst.equals(initialVertex) && !currentFirst.hasChargingStation()) {
+            // check whether the visiting vertex has no charging station
+            if (!currentFirst.equals(commenceVertex) && !currentFirst.hasChargingStation()) {
                 paths.removeLast();
-                System.out.println(currentFirst.getName() + " does not have a charging station, path unsuitable");
+                System.out.println(currentFirst.getName() + " does not have a charging station, path not usable");
+                notStartDirectLinkEnd = true;
                 continue;
             }
 
@@ -289,14 +297,22 @@ public class RoadMap {
                     paths.add(destinVertex);
                     System.out.println(v.getName() + " destination reached");
                     System.out.println("path: " + paths);
-                    return true;
+                    // set notStartDirectLinkEnd to true if haven't already, ignoring return true
+                    if (!notStartDirectLinkEnd){
+                      System.out.println("but starting vertex directly links to the end vertex, so path ignored.");
+                      System.out.println("Continue searching");
+                      notStartDirectLinkEnd = true;
+                    } else{
+                    return true;}
                 }
             }
 
             for (Vertex neighbour : allNeighbours) {
-                // We only add unvisited neighbours
+                // only add unvisited Neighbours
                 if (!neighbour.isVisited()) {
                     queue.add(neighbour);
+                    // set notStartDirectLinkEnd to true if haven't already, ignoring return true
+                    notStartDirectLinkEnd = true;
                 }
             }
         }
@@ -346,11 +362,15 @@ public class RoadMap {
 
     public  LinkedList<Vertex> getAdjacentVertex(Vertex vertex) {
         LinkedList<Vertex> adjacentVertex = new LinkedList<>();
-        //order the roads by the shortest length first so shortest path is searched first
-        Collections.sort(roads);
+
+        ArrayList<Edge> roads = vertex.getIncidentRoads();
+        Collections.sort(roads); // Ensures that the shortest length road takes priority unless the connecting vertex is not a charging station.
         for (Edge road : roads) {
             if (road.getFirstVertex().equals(vertex)) {
                 adjacentVertex.add(road.getSecondVertex());
+            }
+            if (road.getSecondVertex().equals(vertex)) {
+                adjacentVertex.add(road.getFirstVertex());
             }
         }
         return adjacentVertex;
